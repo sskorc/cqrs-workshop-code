@@ -16,6 +16,8 @@ use Twitsup\Application\RegisterUser;
 use Twitsup\Application\RegisterUserHandler;
 use Twitsup\Application\SendTweet;
 use Twitsup\Application\SendTweetHandler;
+use Twitsup\Application\UnfollowUser;
+use Twitsup\Application\UnfollowUserHandler;
 use Twitsup\ReadModel\TimelineRepository;
 use Twitsup\ReadModel\UserLookupRepository;
 
@@ -121,4 +123,55 @@ class TwitsupContext implements Context, SnippetAcceptingContext
         $timeline = $timelineRepository->timelineFor($this->userId);
         Assertion::contains($timeline, $tweetText);
     }
+
+    /**
+     * @Given I follow :username (:nickname)
+     */
+    public function iFollowAPreviouslyRegisteredUser($username, $nickname)
+    {
+        $registerUserHandler = $this->container->get(RegisterUserHandler::class);
+        $registerUser = new RegisterUser();
+        $registerUser->id = (string)Uuid::uuid4();
+        $registerUser->username = $username;
+        $registerUser->nickname = $nickname;
+
+        $registerUserHandler->__invoke($registerUser);
+
+        $followUserHandler = $this->container->get(FollowUserHandler::class);
+
+        $followUser = new FollowUser();
+        $followUser->followerUsername = $this->username;
+        $followUser->followeeUsername = $username;
+
+        $followUserHandler->__invoke($followUser);
+    }
+
+    /**
+     * @When I unfollow :username
+     */
+    public function iUnfollowUser($username)
+    {
+        $unfollowUserHandler = $this->container->get(UnfollowUserHandler::class);
+
+        $unfollowUser = new UnfollowUser();
+        $unfollowUser->followerUsername = $this->username;
+        $unfollowUser->followeeUsername = $username;
+
+        $unfollowUserHandler->__invoke($unfollowUser);
+    }
+
+    /**
+     * @Then I don't see on my timeline: :tweetText
+     */
+    public function iDonTSeeOnMyTimeline($tweetText)
+    {
+        /** @var TimelineRepository $timelineRepository */
+        $timelineRepository = $this->container->get(TimelineRepository::class);
+        $timeline = $timelineRepository->timelineFor($this->userId);
+
+        if (strpos($timeline, $tweetText) !== false) {
+            throw new \LogicException('Tweet text was not supposed to appear on the timeline');
+        }
+    }
+
 }

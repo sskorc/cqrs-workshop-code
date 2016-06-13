@@ -4,41 +4,44 @@ namespace Meetup;
 
 final class Meetup
 {
-    private $date;
-    private $title;
+    private $recordedEvents = [];
     private $cancelled = false;
 
     public static function schedule(\DateTimeInterface $date, $title)
     {
         $meetup = new self();
-        $meetup->date = $date;
-        $meetup->title = $title;
+        $meetup->recordThat(new MeetupScheduled($date, $title));
 
         return $meetup;
     }
 
     public function reschedule(\DateTimeInterface $newDate)
     {
-        $this->date = $newDate;
+        $this->recordedEvents[] = new MeetupRescheduled($newDate);
     }
 
     public function cancel()
     {
-        $this->cancelled = true;
+        if (!$this->cancelled) {
+            $this->recordedEvents[] = new MeetupCancelled();
+            $this->cancelled = true;
+        }
     }
 
-    public function hasBeenCancelled() : bool
+    public function recordedEvents()
     {
-        return $this->cancelled;
+        return $this->recordedEvents;
     }
 
-    public function date() : \DateTimeInterface
+    public static function reconstituteFromHistory(array $events)
     {
-        return $this->date;
+        foreach ($events as $event) {
+
+        }
     }
 
-    public function title() : string
+    private function recordThat($event)
     {
-        return $this->title;
+        $this->recordedEvents[] = $event;
     }
 }
